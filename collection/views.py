@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponseForbidden
 from .forms import Create_Collection_Form
 from django.contrib.auth.decorators import login_required
+from .models import Collection
 
 @login_required
 def create_collection_view(request):
@@ -17,3 +18,13 @@ def create_collection_view(request):
     else:
         form = Create_Collection_Form()
     return render(request, 'collection/create_collection.html', {'form': form})
+
+@login_required
+def delete_collection_view(request, pk):
+    collection = Collection.objects.get(pk=pk)
+    if not Collection.objects.filter(user=request.user).exists(): # Checking if the collection belongs to the logged in user
+        # If the collection does not belong to the user, return a forbidden response
+        return HttpResponseForbidden('You are not allowed to delete this collection.')
+    if request.method == 'POST': # Deleting the collection if form is submitted
+        collection.delete()
+    return render(request, 'collection/delete_collection.html', {'collection': collection})
