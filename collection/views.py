@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponseForbidden
 from .forms import Create_Collection_Form
 from django.contrib.auth.decorators import login_required
-from .models import Collection
+from .models import Collection, Word
 
 @login_required
 def create_collection_view(request):
@@ -15,6 +15,24 @@ def create_collection_view(request):
             else:
                 collection.user = request.user # Setting the user of collection to the logged in user
                 collection.save()
+    
+            # Get the words from the form and add them to the created collection
+            # If the words already exist in the database, create a many-to-many relationship between the collection and the existing word
+            # If the words don't exist, create a new Word object and add it to the collection
+            words = request.POST.get('words') # Get the words from the form
+            if words:
+                words = words.split(',') # Split the words by comma and create Word objects for each word removing leading/trailing spaces
+                for word in words:
+                    word = word.lower() # Convert the word to lowercase
+                    word = word.strip() # Remove leading/trailing spaces
+                    if not Word.objects.filter(word=word).exists(): # Check if the word already exists in the database
+                        # Create a new Word object if it doesn't exist
+                        new_word = Word.objects.create(word=word) # Create a new Word object and add it to the collection
+                        new_word.save()
+                        collection.words.add(new_word) # Create a many-to-many relationship between the collection and the new word
+                    else:
+                        existing_word = Word.objects.get(word=word) # Get the existing word from the database
+                        collection.words.add(existing_word) # Create a many-to-many relationship between the collection and the existing word
     else:
         form = Create_Collection_Form()
     return render(request, 'collection/create_collection.html', {'form': form})
