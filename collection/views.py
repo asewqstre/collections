@@ -55,6 +55,7 @@ def delete_collection_view(request, pk):
 @login_required
 def update_collection_view(request, pk):
     collection = Collection.objects.get(pk=pk)
+    words = ','.join(collection.words.values_list('word', flat=True))  # Get the words in the collection as a comma-separated string
     if not Collection.objects.filter(user=request.user).exists(): # Checking if the collection belongs to the logged in user
         # If the collection does not belong to the user, return a forbidden response
         return HttpResponseForbidden('You are not allowed to update this collection.')
@@ -65,6 +66,7 @@ def update_collection_view(request, pk):
                 return HttpResponseForbidden(f'You already have {collection.name} collection.')
             collection.user = request.user # Resetting the user of collection to the logged in user because user field is empty while updating the collection
             form.save()
+            save_words(request, collection)
     else:
         form = Create_Collection_Form(instance=collection)  # Pre-fill the form with the existing collection data
-    return render(request, 'collection/update_collection.html', {'form': form, 'collection': collection})
+    return render(request, 'collection/update_collection.html', {'form': form, 'collection': collection, 'words': words})
